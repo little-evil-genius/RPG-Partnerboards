@@ -66,9 +66,9 @@ $l['partnerboards_error_invalid'] = "Ungültige Option";
 $l['partnerboards_error_sort'] = "Beim Feststellen der Partnerbereichfelder-Sortierung ist ein Fehler aufgetreten. Bitte aktualisiere die Seite und probiere es erneut.";
 
 $l['partnerboards_add_header'] = "Neues Partnerbereichfeld hinzufügen";
-$l['partnerboards_add_container'] = "Neues Partnerbereich hinzufügen";
-$l['partnerboards_add_button'] = "Partnerbereich speichern";
-$l['partnerboards_add_flash'] = "Das Partnerbereich wurde erfolgreich erstellt.";
+$l['partnerboards_add_container'] = "Neues Partnerbereichfeld hinzufügen";
+$l['partnerboards_add_button'] = "Partnerbereichfeld speichern";
+$l['partnerboards_add_flash'] = "Das Partnerbereichfeld wurde erfolgreich erstellt.";
 
 $l['partnerboards_edit_header'] = "Partnerbereichfeld bearbeiten";
 $l['partnerboards_edit_container'] = "Partnerbereichfeld: {1}";
