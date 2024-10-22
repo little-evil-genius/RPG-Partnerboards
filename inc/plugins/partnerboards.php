@@ -1775,7 +1775,7 @@ function partnerboards_global() {
         
         $fields_query = $db->query("SELECT * FROM ".TABLE_PREFIX."partnerboards_fields ORDER BY disporder ASC, title ASC");
         
-        $partnerboard = [];
+        $partnerboards = [];
         while ($field = $db->fetch_array($fields_query)) {
 
             // Leer laufen lassen
@@ -1794,7 +1794,7 @@ function partnerboards_global() {
             $value = partnerboards_parser_fields($index[$identification], $allow_html, $allow_mybb);
     
             // Einzelne Variabeln
-            $partnerboard[$identification] = $value;   
+            $partnerboards[$identification] = $value;   
         }
 
         eval("\$index_foren .= \"".$templates->get("partnerboards_index_bit")."\";");
