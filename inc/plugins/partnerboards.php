@@ -371,7 +371,7 @@ function partnerboards_admin_manage() {
 
                 if(empty($errors)) {
 
-                    $options = preg_replace("#(\r\n|\r|\n)#s", "\n", trim($mybb->get_input('options')));
+                    $options = preg_replace("#(\r\n|\r|\n)#s", "\n", trim($mybb->get_input('selectoptions')));
                     if($mybb->get_input('fieldtype') != "text" AND $mybb->get_input('fieldtype') != "textarea"){
                         $selectoptions = $options;
                     } else {
