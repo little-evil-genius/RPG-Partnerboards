@@ -1471,7 +1471,7 @@ function partnerboards_showthread_start() {
         $partnerboards[$spalte['identification']] = '';
     }
 
-    // zurück, wenn es nicht der Inplay Bereich ist
+    // zurück, wenn es nicht der Partner Bereich ist
     $partnerforums = $managementarea.",".$adoptedarea;
     $relevant_forums = partnerboards_get_relevant_forums($partnerforums);
     if (!in_array($fid, $relevant_forums)) return;
@@ -1551,8 +1551,8 @@ function partnerboards_modcp() {
         add_breadcrumb($lang->nav_modcp, "modcp.php");
         add_breadcrumb($lang->partnerboards_modcp, "modcp.php?action=partnerboards");
 
-        $relevant_forums_management = inplayscenes_get_relevant_forums($managementarea);
-        $relevant_forums_adoptedarea = inplayscenes_get_relevant_forums($adoptedarea);
+        $relevant_forums_management = partnerboards_get_relevant_forums($managementarea);
+        $relevant_forums_adoptedarea = partnerboards_get_relevant_forums($adoptedarea);
 
         // noch in der Verwaltung 
         $management_query = $db->query("SELECT * FROM ".TABLE_PREFIX."partnerboards p
@@ -1741,7 +1741,7 @@ function partnerboards_global() {
         ");
     } else if($indexdisplay_setting == 2) { // alle
         $adoptedarea = $mybb->settings['partnerboards_adoptedarea'];
-        $relevant_forums_adoptedarea = inplayscenes_get_relevant_forums($adoptedarea);
+        $relevant_forums_adoptedarea = partnerboards_get_relevant_forums($adoptedarea);
 
         $index_query = $db->query("SELECT * FROM ".TABLE_PREFIX."partnerboards p
         LEFT JOIN ".TABLE_PREFIX."threads t 
@@ -1837,7 +1837,7 @@ function partnerboards_misc() {
         // Add a breadcrumb
         add_breadcrumb("Übersicht der Partnerforen", "misc.php?action=partnerboards");
 
-        $relevant_forums_adoptedarea = inplayscenes_get_relevant_forums($adoptedarea);
+        $relevant_forums_adoptedarea = partnerboards_get_relevant_forums($adoptedarea);
 
         // angenommene Partnerforen
         $partner_foren = "";
