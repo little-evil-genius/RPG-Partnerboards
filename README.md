@@ -58,24 +58,24 @@ deutsch_du/partnerboards.lang.php
 - RPG-Partnerboards
 
 # Neue Templates (nicht global!)
-partnerboards_forumdisplay
-partnerboards_forumdisplay_fields
-partnerboards_index
-partnerboards_index_bit
-partnerboards_modcp
-partnerboards_modcp_fields
-partnerboards_modcp_forenbit
-partnerboards_modcp_nav
-partnerboards_modcp_partnerareas
-partnerboards_newthread
-partnerboards_newthread_fields
-partnerboards_newthread_indexdisplay
-partnerboards_overview
-partnerboards_overview_fields
-partnerboards_overview_forenbit
-partnerboards_overview_partnerareas
-partnerboards_showthread
-partnerboards_showthread_fields<br>
+- partnerboards_forumdisplay
+- partnerboards_forumdisplay_fields
+- partnerboards_index
+- partnerboards_index_bit
+- partnerboards_modcp
+- partnerboards_modcp_fields
+- partnerboards_modcp_forenbit
+- partnerboards_modcp_nav
+- partnerboards_modcp_partnerareas
+- partnerboards_newthread
+- partnerboards_newthread_fields
+- partnerboards_newthread_indexdisplay
+- partnerboards_overview
+- partnerboards_overview_fields
+- partnerboards_overview_forenbit
+- partnerboards_overview_partnerareas
+- partnerboards_showthread
+- partnerboards_showthread_fields<br>
 <br>
 <b>HINWEIS:</b><br>
 Alle Templates wurden größtenteils ohne Tabellen-Struktur gecodet. Das Layout wurde auf ein MyBB Default Design angepasst.
