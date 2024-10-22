@@ -1285,9 +1285,6 @@ function partnerboards_do_editpost() {
     // post isnt the first post in thread
     if ($thread['firstpost'] != $pid) return;
 
-    // Mögliche gespeicherte Entwürfe löschen
-    $db->delete_query("partnerboards", "tid = '".$mybb->get_input('tid', MyBB::INPUT_INT)."'");
-
     // SPEICHERN
     $update_partner = array(
         'indexdisplay' => (int)$mybb->get_input('indexdisplay'),
@@ -1310,7 +1307,13 @@ function partnerboards_do_editpost() {
         $update_partner[$identification] = $db->escape_string($value);
     }
 
-    $db->update_query("partnerboards", $update_partner, "tid='".$tid."'");
+    $exists = $db->fetch_field($db->simple_select("partnerboards", "tid", "tid = '".$tid."'"), "tid");
+    if (!$exists) {
+        $update_partner['tid'] = (int)$tid;
+        $db->insert_query("partnerboards", $update_partner);
+    } else {
+        $db->update_query("partnerboards", $update_partner, "tid='".$tid."'");
+    }
 }
 
 // THEMA WIRD GELÖSCHT -> MODERATIONS
