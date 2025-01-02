@@ -38,6 +38,7 @@ $plugins->add_hook('showthread_start', 'partnerboards_showthread_start');
 $plugins->add_hook('modcp_nav', 'partnerboards_modcp_nav');
 $plugins->add_hook('modcp_start', 'partnerboards_modcp');
 $plugins->add_hook('global_intermediate', 'partnerboards_global');
+$plugins->add_hook("build_forumbits_forum", "partnerboards_forumbit");
 $plugins->add_hook("misc_start", "partnerboards_misc");
  
 // Die Informationen, die im Pluginmanager angezeigt werden
@@ -69,6 +70,9 @@ function partnerboards_install(){
 
     // DATENBANKTABELLE
     partnerboards_database();
+
+    // VERZEICHNIS ERSTELLEN
+    partnerboards_directories();
 
     // EINSTELLUNGEN HINZUFÜGEN
     $maxdisporder = $db->fetch_field($db->query("SELECT MAX(disporder) FROM ".TABLE_PREFIX."settinggroups"), "MAX(disporder)");
@@ -237,7 +241,8 @@ function partnerboards_admin_manage() {
             "radio" => $lang->partnerboards_type_radio,
             "checkbox" => $lang->partnerboards_type_checkbox,
             "date" => $lang->partnerboards_type_date,
-            "url" => $lang->partnerboards_type_url
+            "url" => $lang->partnerboards_type_url,
+            "upload" => $lang->partnerboards_type_upload
         );
 
 		// Add to page navigation
@@ -368,12 +373,27 @@ function partnerboards_admin_manage() {
                 if(($mybb->get_input('fieldtype') == "select" AND $mybb->get_input('fieldtype') == "multiselect" AND $mybb->get_input('fieldtype') == "radio" AND $mybb->get_input('fieldtype') == "checkbox") AND empty($mybb->get_input('selectoptions'))) {
                     $errors[] = $lang->partnerboards_error_selectoptions;
                 }
+                if($mybb->get_input('fieldtype') == "upload") {
+                    if(empty($mybb->get_input('upload_extensions'))){
+                        $errors[] = $lang->partnerboards_error_upload_extensions;
+                    }
+                    if(empty($mybb->get_input('upload_graphicdims'))){
+                        $errors[] = $lang->partnerboards_error_upload_graphicdims;
+                    }
+                    if ($mybb->get_input('upload_bytesize') === null || $mybb->get_input('upload_bytesize') === '') {
+                        $errors[] = $lang->partnerboards_error_upload_bytesize;
+                    }
+                }
 
                 if(empty($errors)) {
 
-                    $options = preg_replace("#(\r\n|\r|\n)#s", "\n", trim($mybb->get_input('selectoptions')));
-                    if($mybb->get_input('fieldtype') != "text" AND $mybb->get_input('fieldtype') != "textarea"){
-                        $selectoptions = $options;
+                    if (!empty($mybb->get_input('selectoptions'))) {
+                        $options = preg_replace("#(\r\n|\r|\n)#s", "\n", trim($mybb->get_input('selectoptions')));
+                        if($mybb->get_input('fieldtype') != "text" AND $mybb->get_input('fieldtype') != "textarea"){
+                            $selectoptions = $options;
+                        } else {
+                            $selectoptions = "";
+                        }
                     } else {
                         $selectoptions = "";
                     }
@@ -401,6 +421,9 @@ function partnerboards_admin_manage() {
                         "description" => $db->escape_string($mybb->get_input('description')),
                         "type" => $db->escape_string($mybb->get_input('fieldtype')),
                         "options" => $selectoptions,
+                        "upload_extensions" => $mybb->get_input('upload_extensions'),
+                        "upload_graphicdims" => $mybb->get_input('upload_graphicdims'),
+                        "upload_bytesize" => (int)$mybb->get_input('upload_bytesize'),
                         "required" => (int)$mybb->get_input('required'),
                         "disporder" => (int)$mybb->get_input('disporder'),
                         "editableby" => $db->escape_string($editableby_value),
@@ -458,21 +481,21 @@ function partnerboards_admin_manage() {
             $form_container->output_row(
 				$lang->partnerboards_container_identification,
 				$lang->partnerboards_container_identification_desc,
-				$form->generate_text_box('identification', htmlspecialchars_uni($mybb->get_input('identification')), array('id' => 'identification')), 'identification'
+				$form->generate_text_box('identification', $mybb->get_input('identification'), array('id' => 'identification')), 'identification'
 			);
     
             // Titel
             $form_container->output_row(
 				$lang->partnerboards_container_title,
                 '',
-				$form->generate_text_box('title', htmlspecialchars_uni($mybb->get_input('title')), array('id' => 'title')), 'title'
+				$form->generate_text_box('title', $mybb->get_input('title'), array('id' => 'title')), 'title'
 			);
 
             // Kurzbeschreibung
             $form_container->output_row(
 				$lang->partnerboards_container_description,
                 '',
-				$form->generate_text_box('description', htmlspecialchars_uni($mybb->get_input('description')), array('id' => 'description')), 'description'
+				$form->generate_text_box('description', $mybb->get_input('description'), array('id' => 'description')), 'description'
 			);
 
             // Feldtyp
@@ -490,6 +513,39 @@ function partnerboards_admin_manage() {
                 'selectoptions',
                 array('id' => 'row_selectoptions')
 			);
+
+            // UPLOAD FUNKTION
+            // Dateitypen
+            $form_container->output_row(
+                $lang->partnerboards_container_graphicextensions,
+                $lang->partnerboards_container_graphicextensions_desc,
+                $form->generate_text_box('upload_extensions', $mybb->get_input('upload_extensions')), 
+                'upload_extensions',
+                array('id' => 'row_upload_extensions')
+            );
+
+            // Grafikgröße
+            $form_container->output_row(
+                $lang->partnerboards_container_graphicdims,
+                $lang->partnerboards_container_graphicdims_desc,
+                $form->generate_text_box('upload_graphicdims', $mybb->get_input('upload_graphicdims')), 
+                'upload_graphicdims',
+                array('id' => 'row_upload_graphicdims')
+            );
+
+            // Dateigröße
+            if ($mybb->get_input('upload_bytesize') === null || $mybb->get_input('upload_bytesize') === '') {
+                $upload_bytesize = 2048;
+            } else {
+                $upload_bytesize = $mybb->get_input('upload_bytesize');
+            }
+            $form_container->output_row(
+                $lang->partnerboards_container_graphicbytesize,
+                $lang->partnerboards_container_graphicbytesize_desc,
+                $form->generate_numeric_field('upload_bytesize', $upload_bytesize, array('id' => 'upload_bytesize', 'min' => 0)), 
+                'upload_bytesize',
+                array('id' => 'row_upload_bytesize')
+            );
 
             // Sortierung
             $form_container->output_row(
@@ -564,6 +620,7 @@ function partnerboards_admin_manage() {
                 $(function() {
                         new Peeker($("#fieldtype"), $("#row_parser_options"), /text|textarea/, false);
                         new Peeker($("#fieldtype"), $("#row_selectoptions"), /select|multiselect|radio|checkbox/, false);
+                        new Peeker($("#fieldtype"), $("#row_upload_extensions, #row_upload_graphicdims, #row_upload_bytesize"), /upload/, false);
                         // Add a star to the extra row since the "extra" is required if the box is shown
                         add_star("row_selectoptions");
                 });
@@ -592,13 +649,27 @@ function partnerboards_admin_manage() {
                 if(($mybb->get_input('fieldtype') == "select" AND $mybb->get_input('fieldtype') == "multiselect" AND $mybb->get_input('fieldtype') == "radio" AND $mybb->get_input('fieldtype') == "checkbox") AND empty($mybb->get_input('selectoptions'))) {
                     $errors[] = $lang->partnerboards_error_selectoptions;
                 }
+                if($mybb->get_input('fieldtype') == "upload") {
+                    if(empty($mybb->get_input('upload_extensions'))){
+                        $errors[] = $lang->partnerboards_error_upload_extensions;
+                    }
+                    if(empty($mybb->get_input('upload_graphicdims'))){
+                        $errors[] = $lang->partnerboards_error_upload_graphicdims;
+                    }
+                    if($mybb->get_input('upload_bytesize') === null || $mybb->get_input('upload_bytesize') === ''){
+                        $errors[] = $lang->partnerboards_error_upload_bytesize;
+                    }
+                }
 
                 if(empty($errors)) {
 
-                    $options = preg_replace("#(\r\n|\r|\n)#s", "\n", trim($mybb->get_input('selectoptions')));
-                    if($mybb->get_input('fieldtype') != "text" AND $mybb->get_input('fieldtype') != "textarea")
-                    {
-                        $selectoptions = $options;
+                    if (!empty($mybb->get_input('selectoptions'))) {
+                        $options = preg_replace("#(\r\n|\r|\n)#s", "\n", trim($mybb->get_input('selectoptions')));
+                        if($mybb->get_input('fieldtype') != "text" AND $mybb->get_input('fieldtype') != "textarea"){
+                            $selectoptions = $options;
+                        } else {
+                            $selectoptions = "";
+                        }
                     } else {
                         $selectoptions = "";
                     }
@@ -625,6 +696,9 @@ function partnerboards_admin_manage() {
                         "description" => $db->escape_string($mybb->get_input('description')),
                         "type" => $db->escape_string($mybb->get_input('fieldtype')),
                         "options" => $selectoptions,
+                        "upload_extensions" => $mybb->get_input('upload_extensions'),
+                        "upload_graphicdims" => $mybb->get_input('upload_graphicdims'),
+                        "upload_bytesize" => (int)$mybb->get_input('upload_bytesize'),
                         "required" => (int)$mybb->get_input('required'),
                         "disporder" => (int)$mybb->get_input('disporder'),
                         "editableby" => $db->escape_string($editableby_value),
@@ -665,6 +739,9 @@ function partnerboards_admin_manage() {
 				$allow_html = $mybb->get_input('allowhtml');
 				$allow_mybb = $mybb->get_input('allowmycode');
                 $editableby = $mybb->get_input('editableby');
+                $upload_extensions = $mybb->get_input('upload_extensions');
+                $upload_graphicdims = $mybb->get_input('upload_graphicdims');
+                $upload_bytesize = $mybb->get_input('upload_bytesize');
 
                 if ($mybb->get_input('editableby') == 'custom') {
                     if(isset($mybb->input['select']['editableby']) && is_array($mybb->input['select']['editableby'])) {
@@ -686,6 +763,9 @@ function partnerboards_admin_manage() {
 				$disporder = $field['disporder'];
 				$allow_html = $field['allowhtml'];
 				$allow_mybb = $field['allowmycode'];
+                $upload_extensions = $field['upload_extensions'];
+                $upload_graphicdims = $field['upload_graphicdims'];
+                $upload_bytesize = $field['upload_bytesize'];
 
                 if ($field['editableby'] == -1) {
                     $editableby = 'all';
@@ -710,14 +790,14 @@ function partnerboards_admin_manage() {
             $form_container->output_row(
 				$lang->partnerboards_container_title,
                 '',
-				$form->generate_text_box('title', htmlspecialchars_uni($title), array('id' => 'title')), 'title'
+				$form->generate_text_box('title', $title, array('id' => 'title')), 'title'
 			);
 
             // Kurzbeschreibung
             $form_container->output_row(
 				$lang->partnerboards_container_description,
                 '',
-				$form->generate_text_box('description', htmlspecialchars_uni($description), array('id' => 'description')), 'description'
+				$form->generate_text_box('description', $description, array('id' => 'description')), 'description'
 			);
 
             // Feldtyp
@@ -735,6 +815,34 @@ function partnerboards_admin_manage() {
                 'selectoptions',
                 array('id' => 'row_selectoptions')
 			);
+
+            // UPLOAD FUNKTION
+            // Dateitypen
+            $form_container->output_row(
+                $lang->partnerboards_container_graphicextensions,
+                $lang->partnerboards_container_graphicextensions_desc,
+                $form->generate_text_box('upload_extensions', $upload_extensions), 
+                'upload_extensions',
+                array('id' => 'row_upload_extensions')
+            );
+
+            // Grafikgröße
+            $form_container->output_row(
+                $lang->partnerboards_container_graphicdims,
+                $lang->partnerboards_container_graphicdims_desc,
+                $form->generate_text_box('upload_graphicdims', $upload_graphicdims), 
+                'upload_graphicdims',
+                array('id' => 'row_upload_graphicdims')
+            );
+
+            // Dateigröße
+            $form_container->output_row(
+                $lang->partnerboards_container_graphicbytesize,
+                $lang->partnerboards_container_graphicbytesize_desc,
+                $form->generate_numeric_field('upload_bytesize', $upload_bytesize, array('id' => 'upload_bytesize', 'min' => 0)), 
+                'upload_bytesize',
+                array('id' => 'row_upload_bytesize')
+            );
 
             // Sortierung
             $form_container->output_row(
@@ -797,6 +905,7 @@ function partnerboards_admin_manage() {
                 $(function() {
                         new Peeker($("#fieldtype"), $("#row_parser_options"), /text|textarea/, false);
                         new Peeker($("#fieldtype"), $("#row_selectoptions"), /select|multiselect|radio|checkbox/, false);
+                        new Peeker($("#fieldtype"), $("#row_upload_extensions, #row_upload_graphicdims, #row_upload_bytesize"), /upload/, false);
                         // Add a star to the extra row since the "extra" is required if the box is shown
                         add_star("row_selectoptions");
                 });
@@ -825,10 +934,29 @@ function partnerboards_admin_manage() {
 
 			if ($mybb->request_method == "post") {
 
-                // Spalte löschen bei den Szenen löschen
+                // Spalte löschen bei den Themen löschen
                 $identification = $db->fetch_field($db->simple_select("partnerboards_fields", "identification", "pbfid= '".$pbfid."'"), "identification");
                 if ($db->field_exists($identification, "partnerboards")) {
                     $db->drop_column("partnerboards", $identification);
+                }
+
+                // Grafik-Element löschen
+                $type = $db->fetch_field($db->simple_select("partnerboards_fields", "type", "pbfid= '".$pbfid."'"), "type");
+                if ($type == "upload") {
+                
+                    require_once MYBB_ROOT."inc/functions_upload.php";
+                    require_once MYBB_ROOT."inc/functions.php";
+
+                    $folder = MYBB_ROOT."uploads/partnerboards/";
+                    if (is_dir($folder)) {
+                        $files = array_diff(scandir($folder), array('.', '..'));
+                        foreach ($files as $file) {
+                            $filePath = $folder . $file;
+                            if (is_file($filePath) && strpos($file, $identification."_") === 0) {
+                                delete_uploaded_file($filePath);
+                            }
+                        }
+                    }
                 }
 
                 // Feld in der Feld DB löschen
@@ -958,6 +1086,9 @@ function partnerboards_admin_update_plugin(&$table) {
         // Datenbanktabellen & Felder
         partnerboards_database();
 
+        // VERZEICHNIS ERSTELLEN
+        partnerboards_directories();
+
         flash_message($lang->plugins_flash, "success");
         admin_redirect("index.php?module=rpgstuff-plugin_updates");
     }
@@ -992,6 +1123,7 @@ function partnerboards_settings_peek(&$peekers){
 
     if ($partnerboards_settings_peeker) {
         $peekers[] = 'new Peeker($("#setting_partnerboards_indexdisplay"), $("#row_setting_partnerboards_sisterarea"), /^1/, false)';
+        $peekers[] = 'new Peeker($("#setting_partnerboards_indexdisplay"), $("#row_setting_partnerboards_indexforumbit"), /^1|^2|^3/, false)';
         $peekers[] = 'new Peeker($(".setting_partnerboards_overview"), $("#row_setting_partnerboards_overview_permissions"),/1/,true)'; 
     }
 }
@@ -1092,17 +1224,109 @@ function partnerboards_validate_newthread(&$dh) {
 
         if ($field['editableby'] != '') {
             if ($field['editableby'] == -1) {
-                if (empty($field_value)) {
-                    $error_message = $lang->sprintf($lang->partnerboards_validate_field, $field['title']);
-                    $dh->set_error($error_message);
+                if ($field['type'] != "upload") {
+                    if (empty($field_value)) {
+                        $error_message = $lang->sprintf($lang->partnerboards_validate_field, $field['title']);
+                        $dh->set_error($error_message);
+                    }
+                } else {
+                    if(!empty($_FILES[$field['identification']]['name'])) {
+            
+                        $upload = $db->fetch_array($db->simple_select('partnerboards_fields', 'upload_extensions, upload_graphicdims, upload_bytesize', 'identification = "'.$field['identification'].'"'));
+            
+                        // Grafik-Größe
+                        $imgDimensions = @getimagesize($_FILES[$field['identification']]['tmp_name']);
+                        if(is_array($imgDimensions)){
+                            // Höhe & Breite
+                            $width = $imgDimensions[0]; 
+                            $height = $imgDimensions[1];
+                
+                            // Überprüfung der Bildgröße
+                            list($maxwidth, $maxheight) = preg_split('/[|x]/', my_strtolower($upload['upload_graphicdims']));
+                            if($width > $maxwidth || $height > $maxheight) {
+                                $error_message = $lang->sprintf($lang->partnerboards_validate_upload_dims, $maxwidth, $maxheight);
+                                $dh->set_error($error_message);
+                            }
+                        }
+
+                        // Überprüfung der Dateigröße
+                        if ($upload['upload_bytesize'] > 0) {
+                            $max_size = $upload['upload_bytesize']*1024; 
+                            if($_FILES[$field['identification']]['size'] > $max_size) {
+                                $error_message = $lang->sprintf($lang->partnerboards_validate_upload_size, get_friendly_size($max_size));
+                                $dh->set_error($error_message);
+                            }
+                        }
+                        
+                        // Überprüfung der Dateiendung 
+                        // Dateityp ermittel (.png, .jpg, .gif)
+                        $fileParts = explode(".", $_FILES[$field['identification']]['name']);
+                        $imageFileType = end($fileParts);
+
+                        $extensions_string = str_replace(", ", ",", strtolower($upload['upload_extensions']).",".strtoupper($upload['upload_extensions']));
+                        $extensions_values = explode(",", $extensions_string);   
+                        if(!in_array($imageFileType, $extensions_values)) {
+                            $error_message = $lang->sprintf($lang->partnerboards_validate_upload_file, $imageFileType);
+                            $dh->set_error($error_message); 
+                        }
+                    } else {
+                        $error_message = $lang->partnerboards_validate_upload;
+                        $dh->set_error($error_message); 
+                    }
                 }
             } else {
                 $editableby_groups = explode(",", $field['editableby']);
                 foreach ($editableby_groups as $group) {
-                    if (($mybb->user['usergroup'] == $group) OR (in_array($group, explode(",", $mybb->user['additionalgroups'])))) {
-                        if (empty($field_value)) {
-                            $error_message = $lang->sprintf($lang->partnerboards_validate_field, $field['title']);
-                            $dh->set_error($error_message);
+                    if (($mybb->user['usergroup'] == $group) OR (in_array($group, explode(",", $mybb->user['additionalgroups'])))) {               
+                        if ($field['type'] != "upload") {
+                            if (empty($field_value)) {
+                                $error_message = $lang->sprintf($lang->partnerboards_validate_field, $field['title']);
+                                $dh->set_error($error_message);
+                            }
+                        } else {
+                            if(!empty($_FILES[$field['identification']]['name'])) {
+                    
+                                $upload = $db->fetch_array($db->simple_select('partnerboards_fields', 'upload_extensions, upload_graphicdims, upload_bytesize', 'identification = "'.$field['identification'].'"'));
+                    
+                                // Grafik-Größe
+                                $imgDimensions = @getimagesize($_FILES[$field['identification']]['tmp_name']);
+                                if(is_array($imgDimensions)){
+                                    // Höhe & Breite
+                                    $width = $imgDimensions[0]; 
+                                    $height = $imgDimensions[1];
+                        
+                                    // Überprüfung der Bildgröße
+                                    list($maxwidth, $maxheight) = preg_split('/[|x]/', my_strtolower($upload['upload_graphicdims']));
+                                    if($width > $maxwidth || $height > $maxheight) {
+                                        $error_message = $lang->sprintf($lang->partnerboards_validate_upload_dims, $maxwidth, $maxheight);
+                                        $dh->set_error($error_message);
+                                    }
+                                }
+        
+                                // Überprüfung der Dateigröße
+                                if ($upload['upload_bytesize'] > 0) {
+                                    $max_size = $upload['upload_bytesize']*1024; 
+                                    if($_FILES[$field['identification']]['size'] > $max_size) {
+                                        $error_message = $lang->sprintf($lang->partnerboards_validate_upload_size, get_friendly_size($max_size));
+                                        $dh->set_error($error_message);
+                                    }
+                                }
+                                
+                                // Überprüfung der Dateiendung 
+                                // Dateityp ermittel (.png, .jpg, .gif)
+                                $fileParts = explode(".", $_FILES[$field['identification']]['name']);
+                                $imageFileType = end($fileParts);
+        
+                                $extensions_string = str_replace(", ", ",", strtolower($upload['upload_extensions']).",".strtoupper($upload['upload_extensions']));
+                                $extensions_values = explode(",", $extensions_string);   
+                                if(!in_array($imageFileType, $extensions_values)) {
+                                    $error_message = $lang->sprintf($lang->partnerboards_validate_upload_file, $imageFileType);
+                                    $dh->set_error($error_message); 
+                                }
+                            } else {
+                                $error_message = $lang->partnerboards_validate_upload;
+                                $dh->set_error($error_message); 
+                            }
                         }
                     }
                 }
@@ -1144,6 +1368,14 @@ function partnerboards_do_newthread() {
         if ($type == 'multiselect' || $type == 'checkbox') {
             $value = $mybb->get_input($identification, MyBB::INPUT_ARRAY);
             $value = implode(",", array_map('trim', $value));
+        } else if ($type == 'upload') {
+            $fileParts = explode(".", $_FILES[$field['identification']]['name']);
+            $imageFileType = end($fileParts);
+            $filename = $identification.'_tid'.$tid.'.'.$imageFileType;
+            $value = $filename.'?dateline='.time();
+            $folder_path = MYBB_ROOT.'uploads/partnerboards';
+            
+            move_uploaded_file($_FILES[$identification]['tmp_name'], $folder_path."/".$filename);
         } else {
             $value = $mybb->get_input($identification);
         }
@@ -1196,13 +1428,13 @@ function partnerboards_editpost() {
     // previewing new thread?
     if (isset($mybb->input['previewpost']) || $post_errors) {
         $indexdisplay = $mybb->get_input('indexdisplay');
-        $own_partnerboardsfields = partnerboards_generate_fields(null, true);
+        $own_partnerboardsfields = partnerboards_generate_fields(null, true, $tid);
     } else {
         // Infos aus der DB ziehen
         $draft = $db->fetch_array($db->simple_select('partnerboards', '*', 'tid = '.$tid));
 
         $indexdisplay = $draft['indexdisplay'];
-        $own_partnerboardsfields = partnerboards_generate_fields($draft, null);
+        $own_partnerboardsfields = partnerboards_generate_fields($draft, null, $tid);
     }
 
     if ($indexdisplay_setting == 3 AND $mybb->usergroup['canmodcp'] == '1') {
@@ -1249,17 +1481,125 @@ function partnerboards_validate_editpost(&$dh) {
 
         if ($field['editableby'] != '') {
             if ($field['editableby'] == -1) {
-                if (empty($field_value)) {
-                    $error_message = $lang->sprintf($lang->partnerboards_validate_field, $field['title']);
-                    $dh->set_error($error_message);
+                if ($field['type'] != "upload") {
+                    if (empty($field_value)) {
+                        $error_message = $lang->sprintf($lang->partnerboards_validate_field, $field['title']);
+                        $dh->set_error($error_message);
+                    }
+                } else {
+                    if (!empty($mybb->get_input('delete_'.$field['identification']))) {
+                        $error_message = "Es muss eine Grafik für Button hochgeladen sein. Wenn du die alte Grafik ersetzen möchtest lade einfach eine neue hoch.";
+                        $dh->set_error($error_message); 
+                    } else {
+                        if(!empty($_FILES[$field['identification']]['name'])) {
+                
+                            $upload = $db->fetch_array($db->simple_select('partnerboards_fields', 'upload_extensions, upload_graphicdims, upload_bytesize', 'identification = "'.$field['identification'].'"'));
+                
+                            // Grafik-Größe
+                            $imgDimensions = @getimagesize($_FILES[$field['identification']]['tmp_name']);
+                            if(is_array($imgDimensions)){
+                                // Höhe & Breite
+                                $width = $imgDimensions[0]; 
+                                $height = $imgDimensions[1];
+                    
+                                // Überprüfung der Bildgröße
+                                list($maxwidth, $maxheight) = preg_split('/[|x]/', my_strtolower($upload['upload_graphicdims']));
+                                if($width > $maxwidth || $height > $maxheight) {
+                                    $error_message = $lang->sprintf($lang->partnerboards_validate_upload_dims, $maxwidth, $maxheight);
+                                    $dh->set_error($error_message);
+                                }
+                            }
+    
+                            // Überprüfung der Dateigröße
+                            if ($upload['upload_bytesize'] > 0) {
+                                $max_size = $upload['upload_bytesize']*1024; 
+                                if($_FILES[$field['identification']]['size'] > $max_size) {
+                                    $error_message = $lang->sprintf($lang->partnerboards_validate_upload_size, get_friendly_size($max_size));
+                                    $dh->set_error($error_message);
+                                }
+                            }
+                            
+                            // Überprüfung der Dateiendung 
+                            // Dateityp ermittel (.png, .jpg, .gif)
+                            $fileParts = explode(".", $_FILES[$field['identification']]['name']);
+                            $imageFileType = end($fileParts);
+    
+                            $extensions_string = str_replace(", ", ",", strtolower($upload['upload_extensions']).",".strtoupper($upload['upload_extensions']));
+                            $extensions_values = explode(",", $extensions_string);   
+                            if(!in_array($imageFileType, $extensions_values)) {
+                                $error_message = $lang->sprintf($lang->partnerboards_validate_upload_file, $imageFileType);
+                                $dh->set_error($error_message); 
+                            }
+                        } else {
+                            $checkvalue = $db->fetch_field($db->simple_select('partnerboards', $field['identification'], 'tid = '.$thread['tid']), $field['identification']);
+                            if (empty($checkvalue)) {
+                                $error_message = $lang->partnerboards_validate_upload;
+                                $dh->set_error($error_message); 
+                            }
+                        }
+                    }
                 }
             } else {
                 $editableby_groups = explode(",", $field['editableby']);
                 foreach ($editableby_groups as $group) {
-                    if (($mybb->user['usergroup'] == $group) OR (in_array($group, explode(",", $mybb->user['additionalgroups'])))) {
-                        if (empty($field_value)) {
-                            $error_message = $lang->sprintf($lang->partnerboards_validate_field, $field['title']);
-                            $dh->set_error($error_message);
+                    if (($mybb->user['usergroup'] == $group) OR (in_array($group, explode(",", $mybb->user['additionalgroups'])))) {               
+                        if ($field['type'] != "upload") {
+                            if (empty($field_value)) {
+                                $error_message = $lang->sprintf($lang->partnerboards_validate_field, $field['title']);
+                                $dh->set_error($error_message);
+                            }
+                        } else {
+                            if (!empty($mybb->get_input('delete_'.$field['identification']))) {
+                                $error_message = "Es muss eine Grafik für Button hochgeladen sein. Wenn du die alte Grafik ersetzen möchtest lade einfach eine neue hoch.";
+                                $dh->set_error($error_message); 
+                            } else {
+                                if(!empty($_FILES[$field['identification']]['name'])) {
+                        
+                                    $upload = $db->fetch_array($db->simple_select('partnerboards_fields', 'upload_extensions, upload_graphicdims, upload_bytesize', 'identification = "'.$field['identification'].'"'));
+                        
+                                    // Grafik-Größe
+                                    $imgDimensions = @getimagesize($_FILES[$field['identification']]['tmp_name']);
+                                    if(is_array($imgDimensions)){
+                                        // Höhe & Breite
+                                        $width = $imgDimensions[0]; 
+                                        $height = $imgDimensions[1];
+                            
+                                        // Überprüfung der Bildgröße
+                                        list($maxwidth, $maxheight) = preg_split('/[|x]/', my_strtolower($upload['upload_graphicdims']));
+                                        if($width > $maxwidth || $height > $maxheight) {
+                                            $error_message = $lang->sprintf($lang->partnerboards_validate_upload_dims, $maxwidth, $maxheight);
+                                            $dh->set_error($error_message);
+                                        }
+                                    }
+            
+                                    // Überprüfung der Dateigröße
+                                    if ($upload['upload_bytesize'] > 0) {
+                                        $max_size = $upload['upload_bytesize']*1024; 
+                                        if($_FILES[$field['identification']]['size'] > $max_size) {
+                                            $error_message = $lang->sprintf($lang->partnerboards_validate_upload_size, get_friendly_size($max_size));
+                                            $dh->set_error($error_message);
+                                        }
+                                    }
+                                    
+                                    // Überprüfung der Dateiendung 
+                                    // Dateityp ermittel (.png, .jpg, .gif)
+                                    $fileParts = explode(".", $_FILES[$field['identification']]['name']);
+                                    $imageFileType = end($fileParts);
+            
+                                    $extensions_string = str_replace(", ", ",", strtolower($upload['upload_extensions']).",".strtoupper($upload['upload_extensions']));
+                                    $extensions_values = explode(",", $extensions_string);   
+                                    if(!in_array($imageFileType, $extensions_values)) {
+                                        $error_message = $lang->sprintf($lang->partnerboards_validate_upload_file, $imageFileType);
+                                        $dh->set_error($error_message); 
+                                    }
+                                } else {
+                                    $checkvalue = $db->fetch_field($db->simple_select('partnerboards', $field['identification'], 'tid = '.$thread['tid']), $field['identification']);
+                                    if (empty($checkvalue)) {
+                                        $error_message = $lang->partnerboards_validate_upload;
+                                        $dh->set_error($error_message); 
+                                    }
+                                }
+                            }
                         }
                     }
                 }
@@ -1285,6 +1625,9 @@ function partnerboards_do_editpost() {
     // post isnt the first post in thread
     if ($thread['firstpost'] != $pid) return;
 
+    // Mögliche gespeicherte Entwürfe löschen
+    $db->delete_query("partnerboards", "tid = '".$mybb->get_input('tid', MyBB::INPUT_INT)."'");
+
     // SPEICHERN
     $update_partner = array(
         'indexdisplay' => (int)$mybb->get_input('indexdisplay'),
@@ -1300,6 +1643,30 @@ function partnerboards_do_editpost() {
         if ($type == 'multiselect' || $type == 'checkbox') {
             $value = $mybb->get_input($identification, MyBB::INPUT_ARRAY);
             $value = implode(",", array_map('trim', $value));
+        } else if ($type == 'upload') {
+            require_once MYBB_ROOT."inc/functions_upload.php";
+            require_once MYBB_ROOT."inc/functions.php";
+
+            if (!empty($mybb->get_input('delete_'.$identification))) {
+                $folder_path = MYBB_ROOT.'uploads/partnerboards';
+                $filename = $db->fetch_field($db->simple_select('partnerboards', $identification, 'tid = '.$tid), $identification);
+                $clean_filename = explode('?', $filename)[0];
+                delete_uploaded_file($folder_path."/".$clean_filename);
+
+                $value = "";
+            } else {
+                if(!empty($_FILES[$identification]['name'])) {
+                    $fileParts = explode(".", $_FILES[$identification]['name']);
+                    $imageFileType = end($fileParts);
+                    $filename = $identification.'_tid'.$tid.'.'.$imageFileType;
+                    $value = $filename.'?dateline='.time();
+                    $folder_path = MYBB_ROOT.'uploads/partnerboards';
+                    
+                    move_uploaded_file($_FILES[$identification]['tmp_name'], $folder_path."/".$filename);
+                } else {
+                    $value = $db->fetch_field($db->simple_select('partnerboards', $identification, 'tid = '.$tid), $identification);
+                }
+            }
         } else {
             $value = $mybb->get_input($identification);
         }
@@ -1307,13 +1674,7 @@ function partnerboards_do_editpost() {
         $update_partner[$identification] = $db->escape_string($value);
     }
 
-    $exists = $db->fetch_field($db->simple_select("partnerboards", "tid", "tid = '".$tid."'"), "tid");
-    if (!$exists) {
-        $update_partner['tid'] = (int)$tid;
-        $db->insert_query("partnerboards", $update_partner);
-    } else {
-        $db->update_query("partnerboards", $update_partner, "tid='".$tid."'");
-    }
+    $db->update_query("partnerboards", $update_partner, "tid='".$tid."'");
 }
 
 // THEMA WIRD GELÖSCHT -> MODERATIONS
@@ -1332,6 +1693,20 @@ function partnerboards_delete_thread($tid) {
 
     if(in_array($thread['fid'], $relevant_forums)) {
         $db->delete_query("partnerboards", "tid = '".$tid."'");
+
+        require_once MYBB_ROOT."inc/functions_upload.php";
+        require_once MYBB_ROOT."inc/functions.php";
+        
+        $folder = MYBB_ROOT."uploads/partnerboards/";
+        if (is_dir($folder)) {
+            $files = array_diff(scandir($folder), array('.', '..'));
+            foreach ($files as $file) {
+                $filePath = $folder . $file;
+                if (is_file($filePath) && preg_match("/_tid" . $tid . "\.[a-zA-Z0-9]+$/", $file)) {
+                    delete_uploaded_file($filePath);
+                }
+            }    
+        }
     }
 }
 
@@ -1352,6 +1727,20 @@ function partnerboards_delete_post($pid) {
 
     if (($thread['firstpost'] == $pid) AND (in_array($post['fid'], $relevant_forums))) {
         $db->delete_query("partnerboards", "tid = '".$post['tid']."'");
+
+        require_once MYBB_ROOT."inc/functions_upload.php";
+        require_once MYBB_ROOT."inc/functions.php";
+        
+        $folder = MYBB_ROOT."uploads/partnerboards/";
+        if (is_dir($folder)) {
+            $files = array_diff(scandir($folder), array('.', '..'));
+            foreach ($files as $file) {
+                $filePath = $folder . $file;
+                if (is_file($filePath) && preg_match("/_tid" . $post['tid'] . "\.[a-zA-Z0-9]+$/", $file)) {
+                    delete_uploaded_file($filePath);
+                }
+            }    
+        }
     }
 }
 
@@ -1372,6 +1761,20 @@ function partnerboards_deletepost() {
     if($mybb->get_input('delete', MyBB::INPUT_INT) == 1) {
         if (($thread['firstpost'] == $pid) AND (in_array($thread['fid'], $relevant_forums))) {
             $db->delete_query("partnerboards", "tid = '".$tid."'");
+
+            require_once MYBB_ROOT."inc/functions_upload.php";
+            require_once MYBB_ROOT."inc/functions.php";
+            
+            $folder = MYBB_ROOT."uploads/partnerboards/";
+            if (is_dir($folder)) {
+                $files = array_diff(scandir($folder), array('.', '..'));
+                foreach ($files as $file) {
+                    $filePath = $folder . $file;
+                    if (is_file($filePath) && preg_match("/_tid" . $tid . "\.[a-zA-Z0-9]+$/", $file)) {
+                        delete_uploaded_file($filePath);
+                    }
+                }    
+            }
         }
     }
 }
@@ -1428,14 +1831,25 @@ function partnerboards_forumdisplay_thread() {
         $value = "";
         $allow_html = "";
         $allow_mybb = "";
+        $type = "";
 
         // Mit Infos füllen
         $identification = $field['identification'];
         $title = $field['title'];
         $allow_html = $field['allowhtml'];
         $allow_mybb = $field['allowmycode'];
+        $type = $field['type'];
 
-        $value = partnerboards_parser_fields($info[$identification], $allow_html, $allow_mybb);
+        if ($type == "upload") {
+            if (!empty($info[$identification])) {
+                list($maxwidth, $maxheight) = preg_split('/[|x]/', my_strtolower($field['upload_graphicdims']));
+                $value = "<img src=\"uploads/partnerboards/".$info[$identification]."\" width=\"".$maxwidth."\" height=\"".$maxheight."\">";
+            } else {
+                $value = "";
+            }
+        } else {
+            $value = partnerboards_parser_fields($info[$identification], $allow_html, $allow_mybb);
+        }
 
         // Einzelne Variabeln
         $partnerboards[$identification] = $value;
@@ -1471,7 +1885,7 @@ function partnerboards_showthread_start() {
         $partnerboards[$spalte['identification']] = '';
     }
 
-    // zurück, wenn es nicht der Partner Bereich ist
+    // zurück, wenn es nicht der Partnerbereich ist
     $partnerforums = $managementarea.",".$adoptedarea;
     $relevant_forums = partnerboards_get_relevant_forums($partnerforums);
     if (!in_array($fid, $relevant_forums)) return;
@@ -1497,14 +1911,25 @@ function partnerboards_showthread_start() {
         $value = "";
         $allow_html = "";
         $allow_mybb = "";
+        $type = "";
 
         // Mit Infos füllen
         $identification = $field['identification'];
         $title = $field['title'];
         $allow_html = $field['allowhtml'];
         $allow_mybb = $field['allowmycode'];
+        $type = $field['type'];
 
-        $value = partnerboards_parser_fields($info[$identification], $allow_html, $allow_mybb);
+        if ($type == "upload") {
+            if (!empty($info[$identification])) {
+                list($maxwidth, $maxheight) = preg_split('/[|x]/', my_strtolower($field['upload_graphicdims']));
+                $value = "<img src=\"uploads/partnerboards/".$info[$identification]."\" width=\"".$maxwidth."\" height=\"".$maxheight."\">";
+            } else {
+                $value = "";
+            }
+        } else {
+            $value = partnerboards_parser_fields($info[$identification], $allow_html, $allow_mybb);
+        }
 
         // Einzelne Variabeln
         $partnerboards[$identification] = $value;
@@ -1602,14 +2027,25 @@ function partnerboards_modcp() {
                 $value = "";
                 $allow_html = "";
                 $allow_mybb = "";
+                $type = "";
         
                 // Mit Infos füllen
                 $identification = $field['identification'];
                 $title = $field['title'];
                 $allow_html = $field['allowhtml'];
                 $allow_mybb = $field['allowmycode'];
-        
-                $value = partnerboards_parser_fields($allmanagement[$identification], $allow_html, $allow_mybb);
+                $type = $field['type'];
+
+                if ($type == "upload") {
+                    if (!empty($allmanagement[$identification])) {
+                        list($maxwidth, $maxheight) = preg_split('/[|x]/', my_strtolower($field['upload_graphicdims']));
+                        $value = "<img src=\"uploads/partnerboards/".$allmanagement[$identification]."\" width=\"".$maxwidth."\" height=\"".$maxheight."\">";
+                    } else {
+                        $value = "";
+                    }
+                } else {
+                    $value = partnerboards_parser_fields($allmanagement[$identification], $allow_html, $allow_mybb);
+                }
         
                 // Einzelne Variabeln
                 $partnerboard[$identification] = $value;
@@ -1684,14 +2120,25 @@ function partnerboards_modcp() {
                     $value = "";
                     $allow_html = "";
                     $allow_mybb = "";
+                    $type = "";
             
                     // Mit Infos füllen
                     $identification = $field['identification'];
                     $title = $field['title'];
                     $allow_html = $field['allowhtml'];
                     $allow_mybb = $field['allowmycode'];
-            
-                    $value = partnerboards_parser_fields($alladopted[$identification], $allow_html, $allow_mybb);
+                    $type = $field['type'];
+    
+                    if ($type == "upload") {
+                        if (!empty($alladopted[$identification])) {
+                            list($maxwidth, $maxheight) = preg_split('/[|x]/', my_strtolower($field['upload_graphicdims']));
+                            $value = "<img src=\"uploads/partnerboards/".$alladopted[$identification]."\" width=\"".$maxwidth."\" height=\"".$maxheight."\">";
+                        } else {
+                            $value = "";
+                        }
+                    } else {
+                        $value = partnerboards_parser_fields($alladopted[$identification], $allow_html, $allow_mybb);
+                    }
             
                     // Einzelne Variabeln
                     $partnerboard[$identification] = $value;
@@ -1716,7 +2163,7 @@ function partnerboards_modcp() {
     }
 }
 
-// INDEX ANZEIGE
+// INDEX ANZEIGE - Klassik
 function partnerboards_global() {
 
     global $db, $cache, $mybb, $templates, $lang, $partnerboards_index, $partnerboards_index_bit;
@@ -1727,9 +2174,10 @@ function partnerboards_global() {
 	// EINSTELLUNGEN
     $indexdisplay_setting = $mybb->settings['partnerboards_indexdisplay'];
 
+    $partnerboards_index_bit = "";
+
     if ($indexdisplay_setting == 0) return;
 
-    $partnerboards_index_bit = "";
     if ($indexdisplay_setting == 1) { // Sister
         $sisterarea = $mybb->settings['partnerboards_sisterarea'];
 
@@ -1775,7 +2223,7 @@ function partnerboards_global() {
         
         $fields_query = $db->query("SELECT * FROM ".TABLE_PREFIX."partnerboards_fields ORDER BY disporder ASC, title ASC");
         
-        $partnerboards = [];
+        $partnerboard = [];
         while ($field = $db->fetch_array($fields_query)) {
 
             // Leer laufen lassen
@@ -1784,17 +2232,28 @@ function partnerboards_global() {
             $value = "";
             $allow_html = "";
             $allow_mybb = "";
+            $type = "";
         
             // Mit Infos füllen
             $identification = $field['identification'];
             $title = $field['title'];
             $allow_html = $field['allowhtml'];
             $allow_mybb = $field['allowmycode'];
-            
-            $value = partnerboards_parser_fields($index[$identification], $allow_html, $allow_mybb);
+            $type = $field['type'];
+
+            if ($type == "upload") {
+                if (!empty($index[$identification])) {
+                    list($maxwidth, $maxheight) = preg_split('/[|x]/', my_strtolower($field['upload_graphicdims']));
+                    $value = "<img src=\"uploads/partnerboards/".$index[$identification]."\" width=\"".$maxwidth."\" height=\"".$maxheight."\">";
+                } else {
+                    $value = "";
+                }
+            } else {
+                $value = partnerboards_parser_fields($index[$identification], $allow_html, $allow_mybb);
+            }
     
             // Einzelne Variabeln
-            $partnerboards[$identification] = $value;   
+            $partnerboard[$identification] = $value;   
         }
 
         eval("\$index_foren .= \"".$templates->get("partnerboards_index_bit")."\";");
@@ -1804,6 +2263,114 @@ function partnerboards_global() {
     }
 
 	eval("\$partnerboards_index = \"".$templates->get("partnerboards_index")."\";");
+}
+
+// INDEX ANZEIGE - Forumbit
+function partnerboards_forumbit(&$forum) {
+
+    global $db, $cache, $mybb, $templates, $lang, $partnerboards_index, $partnerboards_index_bit;
+	
+	// SPRACHDATEI
+	$lang->load('partnerboards');
+
+	// EINSTELLUNGEN
+    $indexdisplay_setting = $mybb->settings['partnerboards_indexdisplay'];
+    $indexforumbit_setting = $mybb->settings['partnerboards_indexforumbit'];
+
+    $forum['partnerboards_index'] = "";
+
+    if ($indexdisplay_setting == 0 OR $indexforumbit_setting == -1) return;
+
+    if ($forum['fid'] != $indexforumbit_setting) {
+        $forum['partnerboards_index'] = "";
+        return;    
+    }
+
+    if ($indexdisplay_setting == 1) { // Sister
+        $sisterarea = $mybb->settings['partnerboards_sisterarea'];
+
+        $index_query = $db->query("SELECT * FROM ".TABLE_PREFIX."partnerboards p
+        LEFT JOIN ".TABLE_PREFIX."threads t 
+        ON (p.tid = t.tid) 
+        WHERE t.fid = ".$sisterarea."
+        ORDER BY t.subject ASC
+        ");
+    } else if($indexdisplay_setting == 2) { // alle
+        $adoptedarea = $mybb->settings['partnerboards_adoptedarea'];
+        $relevant_forums_adoptedarea = partnerboards_get_relevant_forums($adoptedarea);
+
+        $index_query = $db->query("SELECT * FROM ".TABLE_PREFIX."partnerboards p
+        LEFT JOIN ".TABLE_PREFIX."threads t 
+        ON (p.tid = t.tid) 
+        WHERE fid IN (".implode(',', $relevant_forums_adoptedarea).")
+        ORDER BY t.subject ASC
+        ");
+    } else { // individuell
+        $index_query = $db->query("SELECT * FROM ".TABLE_PREFIX."partnerboards p
+        LEFT JOIN ".TABLE_PREFIX."threads t 
+        ON (p.tid = t.tid) 
+        WHERE indexdisplay = 1
+        ORDER BY t.subject ASC
+        ");
+    }
+
+    $index_foren = "";        
+    while($index = $db->fetch_array($index_query)) {
+
+        // Leer laufen lassen
+        $subject = "";
+        $tid = "";
+        $pid = "";
+        $topiclink = "";
+
+        // Mit Infos füllen
+        $subject = $index['subject'];
+        $tid = $index['tid'];
+        $pid = $index['firstpost'];
+        $topiclink = "showthread.php?tid=".$tid."&pid=".$pid."#pid".$pid;
+        
+        $fields_query = $db->query("SELECT * FROM ".TABLE_PREFIX."partnerboards_fields ORDER BY disporder ASC, title ASC");
+        
+        $partnerboard = [];
+        while ($field = $db->fetch_array($fields_query)) {
+
+            // Leer laufen lassen
+            $identification = "";
+            $title = "";
+            $value = "";
+            $allow_html = "";
+            $allow_mybb = "";
+            $type = "";
+        
+            // Mit Infos füllen
+            $identification = $field['identification'];
+            $title = $field['title'];
+            $allow_html = $field['allowhtml'];
+            $allow_mybb = $field['allowmycode'];
+            $type = $field['type'];
+
+            if ($type == "upload") {
+                if (!empty($index[$identification])) {
+                    list($maxwidth, $maxheight) = preg_split('/[|x]/', my_strtolower($field['upload_graphicdims']));
+                    $value = "<img src=\"uploads/partnerboards/".$index[$identification]."\" width=\"".$maxwidth."\" height=\"".$maxheight."\">";
+                } else {
+                    $value = "";
+                }
+            } else {
+                $value = partnerboards_parser_fields($index[$identification], $allow_html, $allow_mybb);
+            }
+    
+            // Einzelne Variabeln
+            $partnerboard[$identification] = $value;   
+        }
+
+        eval("\$index_foren .= \"".$templates->get("partnerboards_index_bit")."\";");
+    }
+    if(empty($index_foren)) {
+        $index_foren = $lang->partnerboards_index_none;
+    }
+
+	eval("\$forum['partnerboards_index'] = \"".$templates->get("partnerboards_index")."\";");
 }
 
 // MISC ÜBERSICHT
@@ -1898,14 +2465,25 @@ function partnerboards_misc() {
                     $value = "";
                     $allow_html = "";
                     $allow_mybb = "";
+                    $type = "";
             
                     // Mit Infos füllen
                     $identification = $field['identification'];
                     $title = $field['title'];
                     $allow_html = $field['allowhtml'];
                     $allow_mybb = $field['allowmycode'];
-            
-                    $value = partnerboards_parser_fields($allpartner[$identification], $allow_html, $allow_mybb);
+                    $type = $field['type'];
+
+                    if ($type == "upload") {
+                        if (!empty($allpartner[$identification])) {
+                            list($maxwidth, $maxheight) = preg_split('/[|x]/', my_strtolower($field['upload_graphicdims']));
+                            $value = "<img src=\"uploads/partnerboards/".$allpartner[$identification]."\" width=\"".$maxwidth."\" height=\"".$maxheight."\">";
+                        } else {
+                            $value = "";
+                        }
+                    } else {
+                        $value = partnerboards_parser_fields($allpartner[$identification], $allow_html, $allow_mybb);
+                    }
             
                     // Einzelne Variabeln
                     $partnerboard[$identification] = $value;
@@ -1972,7 +2550,7 @@ function partnerboards_get_relevant_forums($relevantforums) {
 }
 
 // PARTNERBEREICHFELDER AUSLESEN
-function partnerboards_generate_fields($draft = null, $input_data = null) {
+function partnerboards_generate_fields($draft = null, $input_data = null, $tid = "") {
 
     global $db, $mybb, $templates;
 
@@ -1984,8 +2562,16 @@ function partnerboards_generate_fields($draft = null, $input_data = null) {
     $own_partnerboardsfields = "";
     while ($field = $db->fetch_array($fields_query)) {
 
+        // Leer laufen lassen
+        $identification = "";
+        $description = "";
+        $type = "";
+        $options = "";
+        $required = "";
+        $editableby = "";
+
+        // Mit Infos füllen
         $identification = $field['identification'];
-        $title = $field['title'];
         $description = $field['description'];
         $type = $field['type'];
         $options = $field['options'];
@@ -1995,6 +2581,8 @@ function partnerboards_generate_fields($draft = null, $input_data = null) {
         if ($input_data) {
             if ($type == "multiselect" || $type == "checkbox") {
                 $value = $mybb->get_input($identification, MyBB::INPUT_ARRAY);
+            } else if ($type == "upload" AND !empty($tid)) {
+                $value = $db->fetch_field($db->simple_select('partnerboards', $identification, 'tid = '.$tid), $identification);
             } else {
                 $value = $mybb->get_input($identification);
             }
@@ -2004,21 +2592,32 @@ function partnerboards_generate_fields($draft = null, $input_data = null) {
             $value = ""; 
         }
 
+        if ($required == 1) {
+            $title = $field['title']."*";
+        } else {
+            $title = $field['title'];
+        }
+
         // INPUTS generieren
         $code = partnerboards_generate_input_field($identification, $type, $value, $options);
 
         if ($editableby != -1) {
             $editableby_groups = explode(",", $editableby);
+            $has_permission = false;
             foreach ($editableby_groups as $group) {
                 if (($mybb->user['usergroup'] == $group) OR (in_array($group, explode(",", $mybb->user['additionalgroups'])))) {
-                    eval("\$own_partnerboardsfields .= \"".$templates->get("partnerboards_newthread_fields")."\";");
-                } else {
-                    $own_partnerboardsfields = "";
+                    $has_permission = true;
+                    break;
                 }
+            }
+        
+            if ($has_permission) {
+                eval("\$own_partnerboardsfields .= \"".$templates->get("partnerboards_newthread_fields")."\";");
             }
         } else {
             eval("\$own_partnerboardsfields .= \"".$templates->get("partnerboards_newthread_fields")."\";");
         }
+        
     }
 
     return $own_partnerboardsfields;
@@ -2044,6 +2643,16 @@ function partnerboards_generate_input_field($identification, $type, $value = '',
 
         case 'url':
             $input = '<input type="url" class="textbox" size="40" name="'.htmlspecialchars($identification).'" value="' . htmlspecialchars($value) . '">';
+            break;
+
+        case 'upload':
+            if (!empty($value)) {
+                $fileParts = explode("?", $value);
+                $edit_upload = "<div style=\"padding-bottom: 1em;\"><b>Aktuell hochgeladen:</b> <a href=\"uploads/partnerboards/".$value."\" target=\"_blank\">".$fileParts[0]."</a><span style=\"margin-left: 0.5em;\"><input type=\"checkbox\" name=\"delete_".htmlspecialchars($identification)."\" id=\"delete_".htmlspecialchars($identification)."\" class=\"checkbox\" value=\"1\">Löschen?</span></div><b>Neue Datei hochladen?</b><br>";
+            } else {
+                $edit_upload = "";
+            }
+            $input = $edit_upload.'<input type="file" id="'.htmlspecialchars($identification).'" name="'.htmlspecialchars($identification).'">';
             break;
 
         case 'radio':
@@ -2169,6 +2778,9 @@ function partnerboards_database() {
             `description` VARCHAR(500),
             `type` VARCHAR(250) NOT NULL,
             `options` VARCHAR(500),
+            `upload_extensions` VARCHAR(100),
+            `upload_graphicdims` VARCHAR(100),
+            `upload_bytesize` VARCHAR(100),
             `required` int(1) NOT NULL DEFAULT '0',
             `disporder` int(5) NOT NULL DEFAULT '0',
             `editableby` VARCHAR(500),
@@ -2179,6 +2791,23 @@ function partnerboards_database() {
             )
             ENGINE=MyISAM DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci AUTO_INCREMENT=1
         ");
+    }
+
+    if (!$db->field_exists("upload_extensions", "partnerboards_fields")) {
+        $db->add_column("partnerboards_fields", "upload_extensions", "VARCHAR(100)");
+    }
+    if (!$db->field_exists("upload_graphicdims", "partnerboards_fields")) {
+        $db->add_column("partnerboards_fields", "upload_graphicdims", "VARCHAR(100)");
+    }
+    if (!$db->field_exists("upload_bytesize", "partnerboards_fields")) {
+        $db->add_column("partnerboards_fields", "upload_bytesize", "VARCHAR(100)");
+    }
+}
+
+// VERZEICHNISSE
+function partnerboards_directories() {
+    if (!is_dir(MYBB_ROOT.'uploads/partnerboards')) {
+        mkdir(MYBB_ROOT.'uploads/partnerboards', 0777, true);
     }
 }
 
@@ -2216,26 +2845,33 @@ function partnerboards_settings($type = 'install') {
 			'value' => 0, // Default
 			'disporder' => 4
 		),
+        'partnerboards_indexforumbit' => array(
+			'title' => 'Ort der Anzeige auf dem Index',
+			'description' => 'Soll neben der klassischen Anzeige auf dem Index noch eine Variable gebildet werden für die Darstellung zwischen den Foren? Keins = Nein<br>Beide Variabeln können parallel/pro Design unterschiedlich genutzt werden.',
+			'optionscode' => 'forumselectsingle',
+			'value' => -1, // Default
+			'disporder' => 5
+		),
 		'partnerboards_sisterarea' => array(
 			'title' => 'Bereich für besondere Partner (Sister)',
 			'description' => 'Bei welchem Forum handelt es sich um den Bereich für besondere Partnerforen (Sister)?',
 			'optionscode' => 'forumselectsingle',
 			'value' => 0, // Default
-			'disporder' => 5
+			'disporder' => 6
 		),
 		'partnerboards_overview' => array(
 			'title' => 'Übersichtsseite',
 			'description' => 'Soll es eine extra Übersichtsseite geben für alle angenommen Partner? Im ModCP gibt es eine eigene Übersicht.',
 			'optionscode' => 'yesno',
 			'value' => 0, // Default
-			'disporder' => 6
+			'disporder' => 7
 		),
 		'partnerboards_overview_permissions' => array(
 			'title' => 'Übersichtsseite - Berechtigungen',
 			'description' => 'Welche Gruppen dürfen die Übersichtsseite der Partnerforen sehen?',
 			'optionscode' => 'groupselect',
 			'value' => 0, // Default
-			'disporder' => 7
+			'disporder' => 8
 		),
 	);
 
@@ -2743,7 +3379,7 @@ function partnerboards_is_updated(){
 
     global $db, $mybb;
 
-    if ($db->table_exists("partnerboards_fields")) {
+    if ($db->field_exists("upload_bytesize", "partnerboards_fields")) {
         return true;
     }
     return false;
