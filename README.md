@@ -1,16 +1,20 @@
 # RPG-Partnerboards
-Das Partnerforum Plugin ermöglicht eine erweiterte Verwaltung und Darstellung von Partnerforen. Daas Team kann über das ACP (Admin Control Panel) individuelle Felder erstellen, die ausgefüllt werden müssen, wenn ein neues Thema im Partnerforum erstellt wird. Die erfassten Daten können im Forumdisplay sowie im Showthread angezeigt werden, um Partnerforen-Informationen klar und strukturiert zu präsentieren.<br>
+Das Partnerforum Plugin ermöglicht eine erweiterte Verwaltung und Darstellung von Partnerforen. Das Team kann über das ACP (Admin Control Panel) individuelle Felder erstellen, die ausgefüllt werden müssen, wenn ein neues Thema im Partnerforenbereich erstellt wird. Die erfassten Daten können im Forumdisplay sowie im Showthread angezeigt werden, um Partnerforen-Informationen klar und strukturiert zu präsentieren.<br>
 <br>
-Zusätzlich bietet das Plugin die Möglichkeit, Partnerforen-Informationen auf der Startseite (Index) auszugeben und eine Übersicht aller Partnerforen im Moderationsbereich (ModCP) anzuzeigen.
+Zusätzlich bietet das Plugin die Möglichkeit, Partnerforen-Informationen auf der Startseite (Index - klassisch und/oder im Forumbit) auszugeben und eine Übersicht aller Partnerforen im Moderationsbereich (ModCP) anzuzeigen.
 
 ## Funktionsübersicht
 - Erstellen von benutzerdefinierten Formularfeldern im ACP mit individuellen Identifikatoren (maschinenlesbar, ohne Sonderzeichen oder Leerzeichen). Unterstützt verschiedene Feldtypen (z.B. Textfelder, Auswahlfelder) für flexible Eingabeformate, ähnlich wie bei den Profilfeldern. Möglichkeit, Felder als verpflichtend zu markieren und zu definieren, welche Benutzergruppen die Felder sehen und ausfüllen dürfen.
 - Ausgabe der Partnerforen-Informationen im Forumdisplay (Template: forumdisplay_thread) und in Threads (Template: showthread).
+- Ausgabe von allen, nur Foren aus einem bestimmten Forum (Sister) oder individuell entschiedene Partnerforen auf dem Index.
 
 # Individuelle Partnerforen-Felder
 Dieses Plugin bietet eine hohe Flexibilität, indem es ermöglicht, im ACP individuell angepasste Felder für Partnerforen zu erstellen. Standardmäßig sind keine Felder vorgegeben, sodass das Team je nach Anforderungen des Forums die benötigten Felder frei gestalten kann. Jedes erstellte Feld erhält einen eindeutigen Identifikator, der keine Sonderzeichen oder Leerzeichen enthalten darf, um eine maschinenlesbare Verarbeitung zu gewährleisten.<br>
 <br>
 Die Feldtypen können, ähnlich wie bei den Profilfeldern, frei gewählt werden. Dies ermöglicht die Nutzung unterschiedlicher Eingabeformate wie Textfelder, Auswahlfelder und mehr. Zudem kann festgelegt werden, ob ein Feld verpflichtend ausgefüllt werden muss und welche Benutzergruppen die Felder sehen und ausfüllen dürfen.
+
+### Grafik-Element
+Als Feldtyp kann unter anderem die Option gewählt werden Grafik. Dahinter versteckt sich eine Upload-Funktion wie man es vom Avatar kennt. Für die einzelnen Upload-Elemente können Dateigröße, Bildgröße und Dateiformat festgelegt werden. Die Grafiken werden dann in einen neu angelegten Ordner auf dem Webspace hochgeladen und gespeichert. Beim löschen des Feldes oder vom Thema wird diese Dateien entfernt.
 
 # Partnerforen-Informationen im Forumdisplay und Thread
 Das Plugin bietet die Möglichkeit, Partnerforen-Informationen in verschiedenen Bereichen des Forums anzuzeigen: im Forumdisplay (Template: forumdisplay_thread) und in Threads (Template: showthread).<br>
