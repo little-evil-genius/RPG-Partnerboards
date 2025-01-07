@@ -15,8 +15,16 @@ $l['partnerboards_modcp_none_adopted'] = "Aktuell gibt es noch keine angenommene
 $l['partnerboards_newthread_rules'] = "Unsere Kriterien";
 $l['partnerboards_newthread_indexdisplay_title'] = "Index-Anzeige";
 $l['partnerboards_newthread_indexdisplay_desc'] = "Soll dieses Forum auf dem Index angezeigt werden?";
+$l['partnerboards_edit_upload_active'] = "Aktuell hochgeladen:";
+$l['partnerboards_edit_upload_del'] = "Löschen?";
+$l['partnerboards_edit_upload_new'] = "Neue Datei hochladen?";
 
 $l['partnerboards_validate_field'] = "Das Partnerforenfeld \"{1}\" muss ausgefüllt werden.";
+$l['partnerboards_validate_upload'] = "Es wurde keine Datei für das Partnerforenfeld \"{1}\" zum hochladen ausgewählt, bitte wähle eine Datei aus um sie hochzuladen.";
+$l['partnerboards_validate_upload_dims'] = "Die Datei für das Partnerforenfeld \"{1}\" ist zu groß. Die maximal zulässige Größe beträgt {2}x{3} Pixel (Breite x Höhe).";
+$l['partnerboards_validate_upload_size'] = "Die Datei für das Partnerforenfeld \"{1}\" ist größer als {2}, bitte wähle eine kleinere Datei aus.";
+$l['partnerboards_validate_upload_file'] = "Die Datei für das Partnerforenfeld \"{1}\" besitzt ein ungültiges Dateiformat ({2}), bitte wähle eine andere Datei aus.";
+$l['partnerboards_validate_upload_delete'] = "Für das Partnerforenfeld \"{1}\" muss eine Grafik vorhanden sein. Wenn die alte Grafik ersetzen werden soll, kann einfach eine neue Datei hochgeladen werden.";
 
 $l['partnerboards_overview'] = "Übersicht der Partnerforen";
 $l['partnerboards_overview_thread'] = "Thema";
