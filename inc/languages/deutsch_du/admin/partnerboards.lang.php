@@ -45,6 +45,12 @@ $l['partnerboards_container_require_desc'] = "Muss dieses Feld bei einer Neuerö
 $l['partnerboards_container_editableby'] = "Sichtbar für <em>*</em>";
 $l['partnerboards_container_editableby_desc'] = "Wähle die Gruppen aus, die dieses Partnerbereichfeld sehen und somit ausfüllen können.";
 $l['partnerboards_container_parseroptions'] = "MyCode-Optionen";
+$l['partnerboards_container_graphicextensions'] = "Erlaubte Dateitypen <em>*</em>";
+$l['partnerboards_container_graphicextensions_desc'] = "Welche Dateitypen sind erlaubt?";
+$l['partnerboards_container_graphicdims'] = "Grafikgröße <em>*</em>";
+$l['partnerboards_container_graphicdims_desc'] = "Die zulässige Größe für die Grafik, Breite und Höhe getrennt durch x oder |.";
+$l['partnerboards_container_graphicbytesize'] = "Maximale Dateigröße <em>*</em>";
+$l['partnerboards_container_graphicbytesize_desc'] = "Die maximale Dateigröße (in Kilobyte) für hochgeladene Elemente (0 = Keine Beschränkung). Der Defaultwert beträgt 2 MB.";
 
 $l['partnerboards_type_text'] = "Textbox";
 $l['partnerboards_type_textarea'] = "Textarea";
@@ -54,6 +60,7 @@ $l['partnerboards_type_radio'] = "Radiobuttons";
 $l['partnerboards_type_checkbox'] = "Checkboxen";
 $l['partnerboards_type_date'] = "Datum";
 $l['partnerboards_type_url'] = "URL";
+$l['partnerboards_type_upload'] = "Grafik (Upload-Funktion)";
 
 $l['partnerboards_container_parse_allowhtml'] = "HTML erlauben";
 $l['partnerboards_container_parse_allowmycode'] = "MyCode erlauben";
@@ -62,13 +69,16 @@ $l['partnerboards_error_identification'] = "Du hast keinen Identifikator für di
 $l['partnerboards_error_title'] = "Du hast keinen Titel für dieses Partnerbereichfeld angegeben.";
 $l['partnerboards_error_description'] = "Du hast keine Beschreibung für dieses Partnerbereichfeld angegeben.";
 $l['partnerboards_error_selectoptions'] = "Du hast keine auswählbare Optionen für dieses Partnerbereichfeld angegeben.";
+$l['partnerboards_error_upload_extensions'] = "Du hast keine erlaubte Dateitypen für die Grafik per Upload-Funktion angegeben.";
+$l['partnerboards_error_upload_graphicdims'] = "Du hast keine zulässige Größe für die Grafik per Upload-Funktion angegeben.";
+$l['partnerboards_error_upload_bytesize'] = "Du hast keine maximale Dateigröße für die Grafik per Upload-Funktion angegeben.";
 $l['partnerboards_error_invalid'] = "Ungültige Option";
 $l['partnerboards_error_sort'] = "Beim Feststellen der Partnerbereichfelder-Sortierung ist ein Fehler aufgetreten. Bitte aktualisiere die Seite und probiere es erneut.";
 
 $l['partnerboards_add_header'] = "Neues Partnerbereichfeld hinzufügen";
 $l['partnerboards_add_container'] = "Neues Partnerbereichfeld hinzufügen";
-$l['partnerboards_add_button'] = "Partnerbereichfeld speichern";
-$l['partnerboards_add_flash'] = "Das Partnerbereichfeld wurde erfolgreich erstellt.";
+$l['partnerboards_add_button'] = "Partnerbereich speichern";
+$l['partnerboards_add_flash'] = "Das Partnerbereich wurde erfolgreich erstellt.";
 
 $l['partnerboards_edit_header'] = "Partnerbereichfeld bearbeiten";
 $l['partnerboards_edit_container'] = "Partnerbereichfeld: {1}";
