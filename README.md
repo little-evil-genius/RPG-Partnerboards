@@ -40,10 +40,16 @@ Zur Auswahl stehen verschiedene Optionen:
 <br>
 Die Anzeige dieser Informationen kann komplett deaktiviert werden, falls keine Partnerforen auf der Startseite dargestellt werden sollen. So bleibt die Entscheidung zur Nutzung dieser Funktion ganz dem Forumsteam überlassen.
 
+# Vorrausetzung
+- Das ACP Modul <a href="https://github.com/little-evil-genius/rpgstuff_modul" target="_blank">RPG Stuff</a> <b>muss</b> vorhanden sein.
+
 # Datenbank-Änderungen
 hinzugefügte Tabelle:
 - partnerboards
 - partnerboards_fields
+
+# Neuer Ordner - partnerboards
+Es wurde ein neuer Ordner mit dem Namen partnerboards im Ordner uploads erstellt. Die hochgeladenen Dateien der Themen werden mit dem Identfikator und der tid gespeichert.
 
 # Neue Sprachdateien
 deutsch_du/admin/partnerboards.lang.php
