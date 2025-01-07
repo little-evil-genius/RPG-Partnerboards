@@ -52,8 +52,8 @@ hinzugefügte Tabelle:
 Es wurde ein neuer Ordner mit dem Namen partnerboards im Ordner uploads erstellt. Die hochgeladenen Dateien der Themen werden mit dem Identfikator und der tid gespeichert.
 
 # Neue Sprachdateien
-deutsch_du/admin/partnerboards.lang.php
-deutsch_du/partnerboards.lang.php
+- deutsch_du/admin/partnerboards.lang.php
+- deutsch_du/partnerboards.lang.php
 
 # Einstellungen
 - Bereich für die Verwaltung
