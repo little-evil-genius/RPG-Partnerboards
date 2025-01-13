@@ -1674,7 +1674,14 @@ function partnerboards_do_editpost() {
         $update_partner[$identification] = $db->escape_string($value);
     }
 
-    $db->update_query("partnerboards", $update_partner, "tid='".$tid."'");
+    if ($db->num_rows($db->simple_select("partnerboards", "tid", "tid= '".$tid."'")) > 0) {
+        $db->update_query("partnerboards", $update_partner, "tid='".$tid."'");
+    } else {
+        $update_partner = array(
+            'tid' => (int)$tid
+        );
+        $db->insert_query("partnerboards", $update_partner);
+    }
 }
 
 // THEMA WIRD GELÖSCHT -> MODERATIONS
@@ -1820,6 +1827,8 @@ function partnerboards_forumdisplay_thread() {
     // Infos aus der DB ziehen
     $info = $db->fetch_array($db->simple_select('partnerboards', '*', 'tid = ' . $tid));
 
+    if (empty($info) && !is_array($info)) return;
+
     $fields_query = $db->query("SELECT * FROM ".TABLE_PREFIX."partnerboards_fields ORDER BY disporder ASC, title ASC");
 
     $partnerboardsfields = "";
@@ -1899,6 +1908,8 @@ function partnerboards_showthread_start() {
 
     // Infos aus der DB ziehen
     $info = $db->fetch_array($db->simple_select('partnerboards', '*', 'tid = ' . $tid));
+
+    if (empty($info) && !is_array($info)) return;
 
     $fields_query = $db->query("SELECT * FROM ".TABLE_PREFIX."partnerboards_fields ORDER BY disporder ASC, title ASC");
 
