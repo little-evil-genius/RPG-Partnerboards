@@ -1050,7 +1050,9 @@ function partnerboards_admin_update_plugin(&$table) {
 
             // Ob im Master Style die Überprüfung vorhanden ist
             $masterstylesheet = $db->fetch_field($db->query("SELECT stylesheet FROM ".TABLE_PREFIX."themestylesheets WHERE tid = 1 AND name = 'partnerboards.css'"), "stylesheet");
-            $pos = strpos($masterstylesheet, $update_string);
+            $masterstylesheet = (string)($masterstylesheet ?? '');
+            $update_string = (string)($update_string ?? '');
+	    $pos = strpos($masterstylesheet, $update_string);
             if ($pos === false) { // nicht vorhanden 
             
                 $theme_query = $db->simple_select('themes', 'tid, name');
