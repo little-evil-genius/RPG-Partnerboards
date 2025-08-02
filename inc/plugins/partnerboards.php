@@ -49,7 +49,7 @@ function partnerboards_info(){
 		"website"	=> "https://github.com/little-evil-genius/RPG-Partnerboards",
 		"author"	=> "little.evil.genius",
 		"authorsite"	=> "https://storming-gates.de/member.php?action=profile&uid=1712",
-		"version"	=> "1.0",
+		"version"	=> "1.0.1",
 		"compatibility" => "18*"
 	);
 }
@@ -1087,6 +1087,35 @@ function partnerboards_admin_update_plugin(&$table) {
 
         // Datenbanktabellen & Felder
         partnerboards_database();
+
+        // Collation prüfen und korrigieren
+        $charset = 'utf8mb4';
+        $collation = 'utf8mb4_unicode_ci';
+
+        $collation_string = $db->build_create_table_collation();
+        if (preg_match('/CHARACTER SET ([^\s]+)\s+COLLATE ([^\s]+)/i', $collation_string, $matches)) {
+            $charset = $matches[1];
+            $collation = $matches[2];
+        }
+
+        $databaseTables = [
+            "partnerboards",
+            "partnerboards_fields"
+        ];
+
+        foreach ($databaseTables as $databaseTable) {
+            if ($db->table_exists($databaseTable)) {
+                $table = TABLE_PREFIX.$databaseTable;
+
+                $query = $db->query("SHOW TABLE STATUS LIKE '".$db->escape_string($table)."'");
+                $table_status = $db->fetch_array($query);
+                $actual_collation = strtolower($table_status['Collation'] ?? '');
+
+                if (!empty($collation) && $actual_collation !== strtolower($collation)) {
+                    $db->query("ALTER TABLE {$table} CONVERT TO CHARACTER SET {$charset} COLLATE {$collation}");
+                }
+            }
+        }
 
         // VERZEICHNIS ERSTELLEN
         partnerboards_directories();
@@ -2783,7 +2812,7 @@ function partnerboards_database() {
             PRIMARY KEY(`pbid`),
             KEY `pbid` (`pbid`)
             )
-            ENGINE=MyISAM DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci AUTO_INCREMENT=1
+            ENGINE=InnoDB ".$db->build_create_table_collation().";
         ");
     }
     // Felder
@@ -2806,18 +2835,8 @@ function partnerboards_database() {
             PRIMARY KEY(`pbfid`),
             KEY `pbfid` (`pbfid`)
             )
-            ENGINE=MyISAM DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci AUTO_INCREMENT=1
+            ENGINE=InnoDB ".$db->build_create_table_collation().";
         ");
-    }
-
-    if (!$db->field_exists("upload_extensions", "partnerboards_fields")) {
-        $db->add_column("partnerboards_fields", "upload_extensions", "VARCHAR(100)");
-    }
-    if (!$db->field_exists("upload_graphicdims", "partnerboards_fields")) {
-        $db->add_column("partnerboards_fields", "upload_graphicdims", "VARCHAR(100)");
-    }
-    if (!$db->field_exists("upload_bytesize", "partnerboards_fields")) {
-        $db->add_column("partnerboards_fields", "upload_bytesize", "VARCHAR(100)");
     }
 }
 
@@ -3394,10 +3413,41 @@ function partnerboards_stylesheet_update() {
 // UPDATE CHECK
 function partnerboards_is_updated(){
 
-    global $db, $mybb;
+    global $db;
 
-    if ($db->field_exists("upload_bytesize", "partnerboards_fields")) {
-        return true;
+    $charset = 'utf8mb4';
+    $collation = 'utf8mb4_unicode_ci';
+
+    $collation_string = $db->build_create_table_collation();
+    if (preg_match('/CHARACTER SET ([^\s]+)\s+COLLATE ([^\s]+)/i', $collation_string, $matches)) {
+        $charset = strtolower($matches[1]);
+        $collation = strtolower($matches[2]);
     }
-    return false;
+
+    $databaseTables = [
+        "partnerboards",
+        "partnerboards_fields"
+    ];
+
+    foreach ($databaseTables as $table_name) {
+        if (!$db->table_exists($table_name)) {
+            return false;
+        }
+
+        $full_table_name = TABLE_PREFIX . $table_name;
+
+        $query = $db->query("
+            SELECT TABLE_COLLATION 
+            FROM information_schema.TABLES 
+            WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = '".$db->escape_string($full_table_name)."'
+        ");
+        $result = $db->fetch_array($query);
+        $actual_collation = strtolower($result['TABLE_COLLATION'] ?? '');
+
+        if ($actual_collation !== $collation) {
+            return false;
+        }
+    }
+
+    return true;
 }
